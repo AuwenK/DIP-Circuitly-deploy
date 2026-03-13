@@ -1,77 +1,99 @@
-// Auth Service - Manages User Profiles
-// Currently uses LocalStorage, but designed with Async methods to support future Server API migration.
-
-const USER_STORAGE_KEY = 'circuitly_users_v1';
+const API_BASE = 'http://localhost:3000/api';
 const SESSION_KEY = 'circuitly_session_user';
 
 window.AuthService = {
-    // Mimic database of users
-    getUsers: async () => {
-        const json = localStorage.getItem(USER_STORAGE_KEY);
-        return json ? JSON.parse(json) : {}; // { "username": { xp: 0, progress: {} } }
-    },
-
-    // Get current logged in user name
     getCurrentUser: () => {
-        return localStorage.getItem(SESSION_KEY);
+        const json = localStorage.getItem(SESSION_KEY);
+        return json ? JSON.parse(json) : null;
     },
 
-    // Login (Set Session)
-    login: async (username) => {
-        const users = await window.AuthService.getUsers();
-        if (users[username]) {
-            localStorage.setItem(SESSION_KEY, username);
-            return { success: true, user: users[username] };
+    login: async (username, password) => {
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                localStorage.setItem(SESSION_KEY, JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            }
+
+            return { success: false, error: data.error || 'Login failed' };
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: 'Server connection failed' };
         }
-        return { success: false, error: 'User not found' };
     },
 
-    // Register (Create User)
-    register: async (username) => {
-        const users = await window.AuthService.getUsers();
+    register: async (username, password, studentId, name, classGroup) => {
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    studentId,
+                    name,
+                    classGroup
+                })
+            });
 
-        if (users[username]) {
-            return { success: false, error: 'User already exists' };
+            const data = await response.json();
+
+            if (data.success) {
+                localStorage.setItem(SESSION_KEY, JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            }
+
+            return { success: false, error: data.error || 'Registration failed' };
+        } catch (err) {
+            console.error(err);
+            return { success: false, error: 'Server connection failed' };
         }
-
-        // Initialize Default State
-        users[username] = {
-            username: username,
-            xp: 0,
-            hearts: 5,
-            nextHeartRestoreTime: null, // timestamp when next heart restores
-            topicProgress: {},
-            created: new Date().toISOString()
-        };
-
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
-        localStorage.setItem(SESSION_KEY, username); // Auto-login
-
-        return { success: true, user: users[username] };
     },
 
-    // Logout
     logout: async () => {
         localStorage.removeItem(SESSION_KEY);
         return { success: true };
     },
 
-    // Save Progress (Sync)
     saveProgress: async (userData) => {
         const currentUser = window.AuthService.getCurrentUser();
-        if (!currentUser) return;
+        if (!currentUser || !currentUser.id) return;
 
-        const users = await window.AuthService.getUsers();
-        if (users[currentUser]) {
-            // Update fields
-            users[currentUser].xp = userData.xp;
-            users[currentUser].hearts = userData.hearts;
-            if (userData.nextHeartRestoreTime !== undefined) {
-                users[currentUser].nextHeartRestoreTime = userData.nextHeartRestoreTime;
-            }
-            users[currentUser].topicProgress = userData.topicProgress;
+        try {
+            await fetch(`${API_BASE}/profile/progress`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    xp: userData.xp,
+                    hearts: userData.hearts,
+                    topicProgress: userData.topicProgress || {}
+                })
+            });
 
-            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+            const updatedSessionUser = {
+                ...currentUser,
+                xp: userData.xp,
+                hearts: userData.hearts,
+                topicProgress: userData.topicProgress || {}
+            };
+
+            localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSessionUser));
+        } catch (err) {
+            console.error('Failed to save progress:', err);
         }
     }
 };

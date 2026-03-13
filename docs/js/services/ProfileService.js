@@ -35,18 +35,39 @@ window.ProfileService = {
         localStorage.setItem(this.ACTIVE_KEY, studentId);
     },
 
-    addProfile: function (profile) {
-        // Validation
+    addProfile: async function (profile) {
         if (!profile.name || !profile.studentId || !profile.username || !profile.password) {
             return { success: false, error: "All fields are required (Name, ID, Username, Password)." };
         }
 
-        // Check for duplicate ID
+        if (window.DataService.isOnline) {
+            try {
+                const res = await fetch(`${window.CONFIG.API_BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: profile.username,
+                        password: profile.password,
+                        studentId: profile.studentId,
+                        name: profile.name,
+                        classGroup: profile.classGroup
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    return { success: true };
+                } else {
+                    return { success: false, error: data.error || "Registration failed" };
+                }
+            } catch (e) {
+                console.error("Backend registration failed, falling back to local:", e);
+            }
+        }
+
+        // --- LOCAL FALLBACK ---
         if (this.profiles.some(p => p.studentId === profile.studentId)) {
             return { success: false, error: "Student ID already exists." };
         }
-
-        // Check for duplicate Username
         if (this.profiles.some(p => p.username === profile.username)) {
             return { success: false, error: "Username already taken." };
         }
@@ -54,34 +75,60 @@ window.ProfileService = {
         const newProfile = {
             ...profile,
             createdAt: new Date().toISOString(),
-            // Default App State
             xp: 0,
             hearts: 5,
             topicProgress: {},
             revisionPool: [],
             stats: {}
         };
-
         this.profiles.push(newProfile);
         this.save();
         return { success: true };
     },
 
-    authenticate: function (username, password) {
+    authenticate: async function (username, password) {
         // Admin Backdoor
         if (username === 'admin' && password === 'admin') {
-            return {
-                success: true,
-                profile: {
-                    name: 'Administrator',
-                    studentId: 'ADMIN',
-                    role: 'admin',
-                    xp: 0,
-                    hearts: 999
-                }
+            const admin = {
+                name: 'Administrator',
+                studentId: 'ADMIN',
+                role: 'admin',
+                xp: 0,
+                hearts: 999
             };
+            this.setActiveProfile(admin.studentId);
+            return { success: true, profile: admin };
         }
 
+        if (window.DataService.isOnline) {
+            try {
+                const res = await fetch(`${window.CONFIG.API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.setActiveProfile(data.user.studentId);
+                    // Add to in-memory profiles if not exists (for local lookups)
+                    if (!this.profiles.some(p => p.studentId === data.user.studentId)) {
+                        this.profiles.push(data.user);
+                    } else {
+                        // Update existing
+                        const idx = this.profiles.findIndex(p => p.studentId === data.user.studentId);
+                        this.profiles[idx] = data.user;
+                    }
+                    this.save();
+                    return { success: true, profile: data.user };
+                } else {
+                    return { success: false, error: data.error || "Login failed" };
+                }
+            } catch (e) {
+                console.error("Backend login failed, falling back to local:", e);
+            }
+        }
+
+        // --- LOCAL FALLBACK ---
         const profile = this.profiles.find(p => p.username === username && p.password === password);
         if (profile) {
             this.setActiveProfile(profile.studentId);
@@ -108,11 +155,12 @@ window.ProfileService = {
             profile.revisionPool = [];
             profile.lastActive = new Date().toISOString();
             this.save();
+            // TODO: Add backend reset if needed
         }
     },
 
     // Generic Progress Update
-    updateProgress: function (studentId, data) {
+    updateProgress: async function (studentId, data) {
         const profile = this.profiles.find(p => p.studentId === studentId);
         if (profile) {
             // Merge data (xp, hearts, topicProgress)
@@ -123,6 +171,23 @@ window.ProfileService = {
 
             profile.lastActive = new Date().toISOString();
             this.save();
+
+            if (window.DataService.isOnline && studentId !== 'ADMIN') {
+                try {
+                    await fetch(`${window.CONFIG.API_BASE_URL}/api/progress`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            studentId: studentId,
+                            xp: profile.xp,
+                            hearts: profile.hearts,
+                            topicProgress: profile.topicProgress
+                        })
+                    });
+                } catch (e) {
+                    console.error("Backend progress sync failed:", e);
+                }
+            }
         }
     },
 
@@ -140,6 +205,13 @@ window.ProfileService = {
             // Also update timestamp
             profile.lastActive = new Date().toISOString();
             this.save();
+            
+            // Sync via updateProgress
+            this.updateProgress(studentId, {
+                xp: profile.xp,
+                hearts: profile.hearts,
+                topicProgress: profile.topicProgress
+            });
         }
     },
 

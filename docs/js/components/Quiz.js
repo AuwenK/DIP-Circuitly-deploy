@@ -1,6 +1,15 @@
-window.Quiz = function ({ topicId, onComplete, onExit }) {
-    const questions = window.DataService.getQuestions(topicId);
+window.Quiz = function ({ topicId, customQuestions, onComplete, onExit }) {
+    let questions = [];
     let currentIndex = 0;
+    
+    const loadQuestions = async () => {
+        if (customQuestions) {
+            questions = customQuestions;
+        } else {
+            questions = await window.DataService.getQuestions(topicId);
+        }
+        renderQuestion();
+    };
     let score = 0;
     let sessionTime = 0; // Seconds
     let questionStartTime = Date.now();
@@ -483,6 +492,6 @@ window.Quiz = function ({ topicId, onComplete, onExit }) {
         }
     };
 
-    renderQuestion();
+    loadQuestions();
     return container;
 };

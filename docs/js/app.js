@@ -173,20 +173,20 @@ function render() { // Inside render, code looks at state.view and matches it ag
         case ROUTES.LOGIN:
             if (window.Login) {
                 component = window.Login({
-                    onLogin: (username, password) => {
-                        const result = window.ProfileService.authenticate(username, password);
+                    onLogin: async (username, password) => {
+                        const result = await window.ProfileService.authenticate(username, password);
                         if (result.success) {
                             loadUser(result.profile);
                         } else {
                             alert(result.error);
                         }
                     },
-                    onRegister: (data) => {
-                        const result = window.ProfileService.addProfile(data);
+                    onRegister: async (data) => {
+                        const result = await window.ProfileService.addProfile(data);
                         if (result.success) {
                             // Auto login after signup? Or ask to login?
                             // Let's auto-login for better UX
-                            const auth = window.ProfileService.authenticate(data.username, data.password);
+                            const auth = await window.ProfileService.authenticate(data.username, data.password);
                             if (auth.success) loadUser(auth.profile);
                         } else {
                             alert(result.error);

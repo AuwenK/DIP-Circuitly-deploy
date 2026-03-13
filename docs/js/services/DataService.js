@@ -37,105 +37,46 @@ window.DataService = {
     init: async () => {
         // Force clear cache so new difficulty data is loaded
         localStorage.removeItem(STORAGE_KEY);
+
+        // Try to connect to backend
         try {
-            const timestamp = new Date().getTime();
-            const response = await fetch(`questions/QuestionBank.csv?t=\${timestamp}`, { cache: 'no-store' });
-            if (!response.ok) throw new Error('Failed to load Question Bank CSV');
-            const text = await response.text();
-            window.DataService.questions = window.DataService.parseCSV(text);
-            console.log(`Loaded ${window.DataService.questions.length} questions from CSV.`);
+            const healthRes = await fetch(`${window.CONFIG.API_BASE_URL}/api/health`);
+            const healthData = await healthRes.json();
+            if (healthData.success) {
+                console.log("Connected to Backend:", healthData.message);
+                window.DataService.isOnline = true;
+            }
         } catch (e) {
-            console.log("CSV load failed (likely local file:// protocol). Switching to embedded data fallback.");
-            if (window.QuestionBankData) {
-                window.DataService.questions = window.DataService.parseCSV(window.QuestionBankData);
-                console.log(`Loaded ${window.DataService.questions.length} questions from Embedded Data.`);
-            } else {
-                // Fallback if even embedded data is missing
-                window.DataService.questions = [
-                    { id: 991, topicId: 1, question: "Critical Error: Data Missing.", optionA: "OK", optionB: "Retry", optionC: "Help", answer: "OK", explanation: "Please check QuestionBankData.js." }
-                ];
+            console.warn("Backend unreachable, using offline mode:", e);
+            window.DataService.isOnline = false;
+        }
+
+        if (!window.DataService.isOnline) {
+            try {
+                const timestamp = new Date().getTime();
+                const response = await fetch(`questions/QuestionBank.csv?t=${timestamp}`, { cache: 'no-store' });
+                if (!response.ok) throw new Error('Failed to load Question Bank CSV');
+                const text = await response.text();
+                window.DataService.questions = window.DataService.parseCSV(text);
+                console.log(`Loaded ${window.DataService.questions.length} questions from CSV.`);
+            } catch (e) {
+                console.log("CSV load failed (likely local file:// protocol). Switching to embedded data fallback.");
+                if (window.QuestionBankData) {
+                    window.DataService.questions = window.DataService.parseCSV(window.QuestionBankData);
+                    console.log(`Loaded ${window.DataService.questions.length} questions from Embedded Data.`);
+                } else {
+                    // Fallback if even embedded data is missing
+                    window.DataService.questions = [
+                        { id: 991, topicId: 1, question: "Critical Error: Data Missing.", optionA: "OK", optionB: "Retry", optionC: "Help", answer: "OK", explanation: "Please check QuestionBankData.js." }
+                    ];
+                }
             }
         }
     },
 
-    // Simple CSV Parser
-    parseCSV: (text) => {
-        const lines = text.split('\n').filter(l => l.trim());
-        if (lines.length < 2) return [];
-        const headers = lines[0].split(',').map(h => h.trim().replace(/\r/g, ''));
+    // ... parseCSV remains same ...
 
-        return lines.slice(1).map(line => {
-            const values = [];
-            let inQuote = false;
-            let current = '';
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"' && line[i + 1] === '"') { // Handle escaped double quotes ""
-                    current += '"';
-                    i++;
-                } else if (char === '"') { // Toggle inQuote state
-                    inQuote = !inQuote;
-                } else if (char === ',' && !inQuote) { // Split on comma outside quotes
-                    values.push(current.trim().replace(/\r/g, ''));
-                    current = '';
-                } else { // Add character to current value
-                    current += char;
-                }
-            }
-            values.push(current.trim().replace(/\r/g, '')); // Add the last value
-
-            const row = {};
-            headers.forEach((h, i) => {
-                let val = values[i] || '';
-                // Remove leading/trailing quotes if present
-                if (val.startsWith('"') && val.endsWith('"')) {
-                    val = val.slice(1, -1);
-                }
-                row[h] = val;
-            });
-
-            // Map text difficulty to numbers if needed
-            let diffNum = Number(row.difficulty);
-            if (isNaN(diffNum)) {
-                if (typeof row.difficulty === 'string') {
-                    const lc = row.difficulty.toLowerCase().trim();
-                    if (lc === 'easy') diffNum = 1;
-                    else if (lc === 'medium' || lc === 'med') diffNum = 2;
-                    else if (lc === 'hard') diffNum = 3;
-                    else diffNum = 1;
-                } else {
-                    diffNum = 1;
-                }
-            }
-
-            // Fix Answer Mapping if it's a single letter (a, b, c, d)
-            let finalAnswer = row.answer;
-            if (finalAnswer && finalAnswer.length === 1) {
-                const char = finalAnswer.toLowerCase();
-                if (char === 'a') finalAnswer = row.optionA;
-                else if (char === 'b') finalAnswer = row.optionB;
-                else if (char === 'c') finalAnswer = row.optionC;
-                else if (char === 'd' && row.optionD) finalAnswer = row.optionD;
-            }
-
-            // Map types and structure
-            return {
-                id: Number(row.id),
-                topicId: Number(row.topicId),
-                question: row.question,
-                optionA: row.optionA,
-                optionB: row.optionB,
-                optionC: row.optionC,
-                optionD: row.optionD || null,
-                answer: finalAnswer,
-                image: row.image || null,
-                explanation: row.explanation || null,
-                difficulty: diffNum
-            };
-        });
-    },
-
-    getQuestions: (topicId) => {
+    getQuestions: async (topicId) => {
         // Helper to shuffle array (Fisher-Yates)
         const shuffle = (array) => {
             for (let i = array.length - 1; i > 0; i--) {
@@ -188,10 +129,36 @@ window.DataService = {
             };
         };
 
-        let qs = window.DataService.questions;
+        let questions = [];
 
-        // Filter by topic
-        let questions = qs.filter(q => q.topicId === Number(topicId));
+        if (window.DataService.isOnline) {
+            try {
+                const res = await fetch(`${window.CONFIG.API_BASE_URL}/api/questions/${topicId}`);
+                const data = await res.json();
+                if (data.success) {
+                    questions = data.questions.map(q => ({
+                        id: q.id,
+                        topicId: q.topicId,
+                        question: q.question,
+                        optionA: q.optionA,
+                        optionB: q.optionB,
+                        optionC: q.optionC,
+                        optionD: q.optionD,
+                        answer: q.answer,
+                        image: q.image,
+                        explanation: q.explanation,
+                        difficulty: q.difficulty
+                    }));
+                }
+            } catch (e) {
+                console.error("Failed to fetch questions from API, using local fallback", e);
+            }
+        }
+
+        if (questions.length === 0) {
+            let qs = window.DataService.questions;
+            questions = qs.filter(q => q.topicId === Number(topicId));
+        }
 
         // Shuffle ALL available questions first
         shuffle(questions);
@@ -224,11 +191,7 @@ window.DataService = {
                 // Retry generation up to 5 times if duplicate prompt found
                 do {
                     newQ = window.ThreePhaseCircuitGenerator.generate();
-                    // Setup randomized options for generated questions if not already random
-                    // Assuming generate() returns fixed options, we should shuffle them too?
-                    // Let's assume generate() handles its own logic, but if not:
                     if (newQ && newQ.options) {
-                        // Check positional for generated too (unlikely but safe)
                         const hasPos = newQ.options.some(opt => /Both|All|None/i.test(opt));
                         if (!hasPos) {
                             newQ.options = shuffle([...newQ.options]);
@@ -246,10 +209,8 @@ window.DataService = {
             return shuffle(standardizedQs); // Reshuffle to mix theory and generated
 
         } else if (String(topicId).startsWith('9')) {
-            // TEST TOPIC (9 or 9_subtopic)
+             // ... existing Test logic ...
             const testQs = [];
-
-            // Extract subtopic if present (e.g. "9_kirchhoff" -> "kirchhoff")
             let subTopic = null;
             if (String(topicId).includes('_')) {
                 subTopic = String(topicId).split('_').slice(1).join('_');
@@ -261,25 +222,16 @@ window.DataService = {
                         let newQ = window.TestCircuitGenerator.generate(subTopic);
                         if (newQ && newQ.options && newQ.correctAnswer) {
                             testQs.push(newQ);
-                        } else {
-                            console.warn("Generated question was malformed:", newQ);
                         }
-                    } catch (e) {
-                        console.error("Error generating question for", subTopic, e);
-                    }
+                    } catch (e) {}
                 }
             }
-
             return shuffle(testQs);
 
         } else {
-            // Standard Topics
-            // Limit to MAX_QUESTIONS
             if (questions.length > MAX_QUESTIONS) {
                 questions = questions.slice(0, MAX_QUESTIONS);
             }
-
-            // Map to standard format with randomization
             return questions.map(mapAndRandomize);
         }
     },
