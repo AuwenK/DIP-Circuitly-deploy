@@ -4,11 +4,11 @@ runtime: nodejs22
 build:
   commands:
     build:
-      - npm install --prefix backend
+      - npm install
 
 run:
   runtime: nodejs22
-  command: node backend/server.js
+  command: node server.js
   network:
     port: 3000
   env:
