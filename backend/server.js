@@ -11,13 +11,7 @@ app.use(cors()); // In production, you might want to restrict this to your GitHu
 app.use(express.json());
 
 app.get('/api/health', async (req, res) => {
-    try {
-        await db.query('SELECT 1');
-        res.json({ success: true, message: 'Backend and database are working' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, error: 'Database connection failed' });
-    }
+    res.json({ success: true, message: 'Backend is running' });
 });
 
 app.post('/api/auth/register', async (req, res) => {
