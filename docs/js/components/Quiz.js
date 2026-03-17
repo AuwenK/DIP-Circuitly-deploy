@@ -452,8 +452,8 @@ window.Quiz = function ({ topicId, customQuestions, onComplete, onExit }) {
                 feedbackOverlay.innerHTML = `
                     <h2 style="color:${accentColor}; text-transform:uppercase; letter-spacing:1px; margin:0;">${titleText}</h2>
                     ${subtitleExtra}
-                    <p style="color:var(--text-main); margin-bottom:10px;">Correct Answer: <strong>${formatMathText(q.correctAnswer)}</strong></p>
-                    ${q.explanation ? `<div style="max-width:600px; text-align:center; color:var(--text-muted); font-size:0.9rem;">${formatMathText(q.explanation)}</div>` : ''}
+                    <p style="color:var(--text-main); margin-bottom:10px;">Correct Answer: <strong>${q.correctAnswer}</strong></p>
+                    ${q.explanation ? `<div style="max-width:600px; text-align:center; color:var(--text-muted); font-size:0.9rem;">${q.explanation}</div>` : ''}
                     <button class="btn btn-secondary" id="next-btn" style="min-width:200px; margin-top:12px; border-color:${accentColor}; color:${accentColor};">GOT IT</button>
                 `;
             }
