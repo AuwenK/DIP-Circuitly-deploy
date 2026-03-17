@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 const db = require('./config/db');
 require('dotenv').config();
 
@@ -9,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors()); // In production, you might want to restrict this to your GitHub Pages domain
 app.use(express.json());
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../docs')));
 
 app.get('/api/health', async (req, res) => {
     res.json({ success: true, message: 'Backend is running' });
@@ -239,6 +243,11 @@ app.get('/api/behaviours', async (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, error: 'Failed to fetch behaviours' });
     }
+});
+
+// Catch-all route to serve the frontend for any non-API requests (Useful for SPA routing)
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, '../docs/index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
