@@ -216,6 +216,7 @@ function render() { // Inside render, code looks at state.view and matches it ag
                     onLogin: async (username, password) => {
                         const result = await window.ProfileService.authenticate(username, password);
                         if (result.success) {
+                            window.ProfileService.logBehaviour('login', { username });
                             loadUser(result.profile);
                         } else {
                             alert(result.error);
@@ -224,6 +225,7 @@ function render() { // Inside render, code looks at state.view and matches it ag
                     onRegister: async (data) => {
                         const result = await window.ProfileService.addProfile(data);
                         if (result.success) {
+                            window.ProfileService.logBehaviour('register', { username: data.username });
                             // Let's auto-login for better UX
                             const auth = await window.ProfileService.authenticate(data.username, data.password);
                             if (auth.success) loadUser(auth.profile);
@@ -250,6 +252,7 @@ function render() { // Inside render, code looks at state.view and matches it ag
                             return;
                         }
                         State.activeTopicId = topicId;
+                        window.ProfileService.logBehaviour('start_topic', { topicId });
                         State.view = ROUTES.QUIZ;
                         render();
                     },
@@ -259,10 +262,12 @@ function render() { // Inside render, code looks at state.view and matches it ag
                             return;
                         }
                         State.activeTopicId = 'revision';
+                        window.ProfileService.logBehaviour('start_revision', { count: State.revisionPool.length });
                         State.view = ROUTES.QUIZ;
                         render();
                     },
                     onStartUnfamiliar: () => {
+                        window.ProfileService.logBehaviour('start_unfamiliar');
                         State.view = ROUTES.UNFAMILIAR;
                         render();
                     }

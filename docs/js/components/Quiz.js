@@ -450,6 +450,7 @@ window.Quiz = function ({ topicId, customQuestions, onCorrect, onComplete, onExi
                 score += 1;
                 correctCount++; // Increment correct count
                 if (onCorrect) onCorrect(q.id);
+                if (window.ProfileService) window.ProfileService.logBehaviour('answer_question', { topicId, questionId: q.id, correct: true });
                 // Adaptive Logic
                 if (Number(topicId) === 8 && adaptiveStats.mode === 'THEORY') {
                     adaptiveStats.recoveryCount++;
@@ -487,6 +488,7 @@ window.Quiz = function ({ topicId, customQuestions, onCorrect, onComplete, onExi
                 `;
             } else {
                 if (Number(topicId) === 8) adaptiveStats.wrongCount++;
+                if (window.ProfileService) window.ProfileService.logBehaviour('answer_question', { topicId, questionId: q.id, correct: false, selectedOption });
 
                 // Dynamic Difficulty Logic (Strike)
                 failStreak++;
