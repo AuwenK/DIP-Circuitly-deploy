@@ -94,7 +94,7 @@ window.AdminDashboard = function ({ onLogout }) {
             viewBtn.style.fontSize = '0.8rem';
             viewBtn.onclick = () => {
                 if (window.StatsChart) {
-                    window.StatsChart({ stats: p.stats });
+                    window.StatsChart({ profile: p });
                 } else {
                     alert("Stats module missing");
                 }

@@ -166,6 +166,11 @@ window.Home = function ({ topicProgress, revisionPoolCount, unfamiliarPoolCount,
 
     container.appendChild(grid);
 
+    // Leaderboard Section
+    if (window.Leaderboard) {
+        container.appendChild(window.Leaderboard());
+    }
+
     // Footer Section
     const footer = document.createElement('div');
     footer.className = 'dashboard-header'; // Re-using style for footer padding/center
