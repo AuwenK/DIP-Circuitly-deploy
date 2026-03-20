@@ -11,6 +11,85 @@ window.AdminDashboard = function ({ onLogout }) {
     actions.style.display = 'flex';
     actions.style.justifyContent = 'flex-end';
     actions.style.marginBottom = '20px';
+    actions.style.gap = '10px';
+
+    async function runSystemDiagnostics() {
+        let results = "⚙️ SYSTEM DIAGNOSTICS REPORT ⚙️\n\n";
+        
+        // 1. App Configuration
+        results += "1. APP CONFIGURATION\n";
+        if (window.CONFIG && window.CONFIG.API_BASE_URL) {
+            results += `✅ OK - API Base URL: ${window.CONFIG.API_BASE_URL}\n`;
+        } else {
+            results += "❌ FAILED - window.CONFIG.API_BASE_URL is missing!\n";
+        }
+
+        // 2. Database Connectivity
+        results += "\n2. DATABASE CONNECTIVITY\n";
+        try {
+            const dbRes = await fetch(`${window.CONFIG?.API_BASE_URL || ''}/api/health`);
+            if (dbRes.ok) {
+                results += `✅ OK - Connected successfully\n`;
+            } else {
+                results += `❌ FAILED - Status Code: ${dbRes.status}\n`;
+            }
+        } catch (e) {
+            results += `❌ FAILED - Network Error: ${e.message}\n`;
+        }
+
+        // 3. Gemini AI Proxy Test
+        results += "\n3. GEMINI AI API\n";
+        try {
+            const aiPayload = {
+                contents: [{ role: "user", parts: [{ text: "Respond 'OK' if you receive this." }] }],
+                generationConfig: { maxOutputTokens: 10 }
+            };
+            const aiRes = await fetch(`${window.CONFIG?.API_BASE_URL || ''}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload: aiPayload })
+            });
+            const aiData = await aiRes.json();
+            if (aiRes.ok && aiData.success) {
+                results += `✅ OK - Gemini Responded Successfully.\n`;
+            } else {
+                results += `❌ FAILED - ${aiData.error || 'Unknown Error'}\n`;
+            }
+        } catch (e) {
+            results += `❌ FAILED - Network/Proxy Error: ${e.message}\n`;
+        }
+
+        // 4. Data Service (Question Bank)
+        results += "\n4. QUESTION BANK (DATASERVICE)\n";
+        if (window.DataService && window.DataService.questions && window.DataService.questions.length > 0) {
+            results += `✅ OK - ${window.DataService.questions.length} questions loaded.\n`;
+        } else {
+            results += "❌ FAILED - Questions not loaded or empty.\n";
+        }
+
+        // 5. Local Services
+        results += "\n5. LOCAL PROFILE SERVICE\n";
+        if (window.ProfileService) {
+            results += `✅ OK - Local Storage Active.\n`;
+        } else {
+            results += "❌ FAILED - ProfileService completely missing.\n";
+        }
+
+        alert(results);
+    }
+
+    // Diagnostics Button
+    const diagBtn = document.createElement('button');
+    diagBtn.className = 'btn';
+    diagBtn.style.background = '#3b82f6';
+    diagBtn.style.color = 'white';
+    diagBtn.innerHTML = '<span>🛠️</span> System Diagnostics';
+    diagBtn.onclick = async () => {
+        diagBtn.textContent = 'Running...';
+        await runSystemDiagnostics();
+        diagBtn.innerHTML = '<span>🛠️</span> System Diagnostics';
+    };
+    actions.appendChild(diagBtn);
 
     // Export All Button
     const exportBtn = document.createElement('button');

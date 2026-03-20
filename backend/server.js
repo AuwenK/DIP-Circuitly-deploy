@@ -5,6 +5,9 @@ const path = require('path');
 const db = require('./config/db');
 require('dotenv').config();
 
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); // Fix Node 18 native fetch failing in AWS App Runner
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
