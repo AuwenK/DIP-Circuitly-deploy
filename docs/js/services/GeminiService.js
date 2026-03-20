@@ -1,14 +1,8 @@
 // GeminiService.js - Natively handles communication with the Google Gemini API
 
 window.GeminiService = {
-    // =========================================================================
-    // ⚠️ IMPORTANT: Replace 'YOUR_API_KEY_HERE' with your real Gemini API key
-    // You can get one for free at: https://aistudio.google.com/app/apikey
-    // =========================================================================
-    API_KEY: 'AIzaSyBaWntaFAeV9PC6V1ICfXC5DqPqkhRYY18',
-    MODEL: 'gemini-2.5-flash',
-    BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
-
+    // We now route through our backend so the API key remains safe!
+    
     // Maintain a simple array of messages to give the model conversation history
     history: [],
 
@@ -22,16 +16,16 @@ window.GeminiService = {
     },
 
     /**
-     * Sends a message to the Gemini API and returns the response.
+     * Sends a message to the Gemini API via the secure backend proxy and returns the response.
      * @param {string} userMessage - The text message from the user.
      * @returns {string} - The response text from the AI.
      */
     sendMessage: async function (userMessage) {
-        if (!this.API_KEY || this.API_KEY.includes('YOUR_API_KEY')) {
-            return "Please configure your Gemini API Key in `js/services/GeminiService.js` to use the AI Tutor.";
+        if (!window.CONFIG || !window.CONFIG.API_BASE_URL) {
+            return "Configuration missing. Cannot connect to the backend.";
         }
 
-        const endpoint = `${this.BASE_URL}/${this.MODEL}:generateContent?key=${this.API_KEY}`;
+        const endpoint = `${window.CONFIG.API_BASE_URL}/api/chat`;
 
         // Build the system instruction string
         let systemText = this.systemInstruction.parts[0].text;
@@ -64,18 +58,19 @@ window.GeminiService = {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ payload })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Gemini API Error:", errorData);
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                console.error("Gemini API Error:", result);
                 // Remove the failed user message from history
                 this.history.pop();
-                throw new Error(errorData.error?.message || "Failed to reach Gemini API.");
+                throw new Error(result.error || "Failed to reach Gemini API backend.");
             }
 
-            const data = await response.json();
+            const data = result.data;
 
             // Extract the model's text response safely
             if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
