@@ -1,6 +1,5 @@
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const CONFIG = {
-    API_BASE_URL: isLocalhost ? 'http://localhost:3000' : 'https://huupmerkm6.ap-southeast-1.awsapprunner.com'
+    API_BASE_URL: '' // Empty string forces relative paths, perfectly supporting both localhost and any dynamic AWS App Runner URL automatically!
 };
 
 window.CONFIG = CONFIG;
