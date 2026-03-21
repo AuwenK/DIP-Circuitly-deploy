@@ -288,9 +288,11 @@ app.post('/api/chat', (req, res) => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postData)
+            'Content-Length': Buffer.byteLength(postData),
+            'Connection': 'keep-alive'
         },
-        timeout: 25000 // 25 seconds timeout to prevent AWS App Runner upstream timeout
+        family: 4, // Explicitly force IPv4 to fix AWS App Runner DNS/IPv6 routing blackholes
+        timeout: 25000 // 25 seconds timeout
     };
 
     const request = https.request(options, (response) => {
