@@ -108,7 +108,9 @@ const getUsersHandler = async (req, res) => {
                 u.xp, 
                 u.hearts, 
                 u.role,
-                u.last_active AS "lastActive"
+                u.last_active AS "lastActive",
+                u.answer_history AS "answer_history",
+                u.stats AS "stats"
             FROM users u
             ORDER BY u.xp DESC
         `);
@@ -134,7 +136,9 @@ const getUsersHandler = async (req, res) => {
         // Attach progress to each user
         users.forEach(user => {
             user.topicProgress = progressMap[user.id] || {};
-            user.stats = user.topicProgress; // For backwards compatibility
+            if (!user.stats || Object.keys(user.stats).length === 0) {
+                user.stats = user.topicProgress; // For backwards compatibility
+            }
         });
 
         res.json({ success: true, users });
@@ -148,7 +152,7 @@ app.get('/api/users', getUsersHandler);
 app.get('/api/admin/users', getUsersHandler);
 
 app.post('/api/progress', async (req, res) => {
-    const { studentId, xp, hearts, topicProgress } = req.body;
+    const { studentId, xp, hearts, topicProgress, answer_history, stats } = req.body;
 
     try {
         const userRes = await db.query('SELECT id FROM users WHERE student_id = $1', [studentId]);
@@ -158,8 +162,8 @@ app.post('/api/progress', async (req, res) => {
         const userId = userRes.rows[0].id;
 
         await db.query(
-            'UPDATE users SET xp = $1, hearts = $2, last_active = NOW() WHERE id = $3',
-            [xp, hearts, userId]
+            'UPDATE users SET xp = $1, hearts = $2, answer_history = COALESCE($4, answer_history), stats = COALESCE($5, stats), last_active = NOW() WHERE id = $3',
+            [xp, hearts, userId, answer_history ? JSON.stringify(answer_history) : null, stats ? JSON.stringify(stats) : null]
         );
 
         for (const [topicId, data] of Object.entries(topicProgress)) {
@@ -182,6 +186,39 @@ app.post('/api/progress', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: 'Failed to save progress' });
+    }
+});
+
+// --- ADMIN ENDPOINTS ---
+app.post('/api/admin/users/:studentId/role', async (req, res) => {
+    try {
+        const { role } = req.body; 
+        const { studentId } = req.params;
+        await db.query('UPDATE users SET role = $1 WHERE student_id = $2', [role, studentId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Database error' });
+    }
+});
+
+app.delete('/api/admin/users/:studentId', async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        await db.query('DELETE FROM users WHERE student_id = $1', [studentId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Database error' });
+    }
+});
+
+app.post('/api/admin/users/:studentId/reset', async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        await db.query("UPDATE users SET xp = 0, hearts = 5, answer_history = '[]'::jsonb, stats = '{}'::jsonb WHERE student_id = $1", [studentId]);
+        await db.query("DELETE FROM topic_progress WHERE user_id = (SELECT id FROM users WHERE student_id = $1)", [studentId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Database error' });
     }
 });
 

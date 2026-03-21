@@ -63,7 +63,9 @@ window.ProfileService = {
             studentId: profile.studentId,
             xp: profile.xp,
             hearts: profile.hearts,
-            topicProgress: syncProg
+            topicProgress: syncProg,
+            answer_history: profile.answer_history,
+            stats: profile.stats
         };
     },
 
@@ -225,16 +227,23 @@ window.ProfileService = {
         return { success: false, error: "Invalid username or password." };
     },
 
-    deleteProfile: function (studentId) {
+    deleteProfile: async function (studentId) {
         this.profiles = this.profiles.filter(p => p.studentId !== studentId);
         if (this.activeProfileId === studentId) {
             this.activeProfileId = null;
             localStorage.removeItem(this.ACTIVE_KEY);
         }
         this.save();
+        if (window.DataService && window.DataService.isOnline) {
+            try {
+                await fetch(`${window.CONFIG.API_BASE_URL}/api/admin/users/${studentId}`, {
+                    method: 'DELETE'
+                });
+            } catch(e) { console.error('Failed to delete online profile', e); }
+        }
     },
 
-    resetProfile: function (studentId) {
+    resetProfile: async function (studentId) {
         const profile = this.profiles.find(p => p.studentId === studentId);
         if (profile) {
             console.warn(`[ProfileService] DESTRICTIVE RESET triggered for: ${profile.name} (${studentId})`);
@@ -270,6 +279,13 @@ window.ProfileService = {
 
             console.log(`[ProfileService] SUCCESS: All learning data cleared from database for ${profile.name}.`);
             this.save();
+            if (window.DataService && window.DataService.isOnline) {
+                try {
+                    await fetch(`${window.CONFIG.API_BASE_URL}/api/admin/users/${studentId}/reset`, {
+                        method: 'POST'
+                    });
+                } catch(e) { console.error('Failed to reset online profile', e); }
+            }
             return { success: true };
         }
         console.error(`[ProfileService] RESET FAILED: Profile ${studentId} not found.`);
@@ -414,20 +430,53 @@ window.ProfileService = {
     },
 
     getLeaderboard: function () {
-        // Filter out admins and sorts by weeklyXP
+        // Filter out admins, run weekly reset check, return full profiles (minus password)
         return this.profiles
             .filter(p => !p.role || p.role !== 'admin')
             .map(p => {
                 this.checkWeeklyReset(p);
-                return {
-                    name: p.name,
-                    username: p.username,
-                    weeklyXP: p.weeklyXP || 0,
-                    xp: p.xp || 0
-                };
+                const { password, ...safe } = p;
+                return safe;
             })
-            .sort((a, b) => b.weeklyXP - a.weeklyXP)
-            .slice(0, 10); // Show top 10
+            .sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    },
+
+    promoteToAdmin: async function (studentId) {
+        const profile = this.profiles.find(p => p.studentId === studentId);
+        if (profile) {
+            profile.role = 'admin';
+            this.save();
+            if (window.DataService && window.DataService.isOnline) {
+                try {
+                    await fetch(`${window.CONFIG.API_BASE_URL}/api/admin/users/${studentId}/role`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ role: 'admin' })
+                    });
+                } catch(e) { console.error('Failed to promote to admin online', e); }
+            }
+            return { success: true };
+        }
+        return { success: false, error: 'Profile not found' };
+    },
+
+    demoteFromAdmin: async function (studentId) {
+        const profile = this.profiles.find(p => p.studentId === studentId);
+        if (profile) {
+            delete profile.role;
+            this.save();
+            if (window.DataService && window.DataService.isOnline) {
+                try {
+                    await fetch(`${window.CONFIG.API_BASE_URL}/api/admin/users/${studentId}/role`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ role: 'user' })
+                    });
+                } catch(e) { console.error('Failed to demote admin online', e); }
+            }
+            return { success: true };
+        }
+        return { success: false, error: 'Profile not found' };
     },
 
     calculateBayesianScore: function (correct, total) {

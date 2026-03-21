@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) DEFAULT 'user',
     next_heart_restore_time TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    answer_history JSONB DEFAULT '[]'::jsonb,
+    stats JSONB DEFAULT '{}'::jsonb
 );
 
 CREATE TABLE IF NOT EXISTS topic_progress (
