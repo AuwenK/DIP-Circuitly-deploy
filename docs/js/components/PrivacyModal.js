@@ -41,7 +41,7 @@ window.PrivacyModal = function ({ onAccept }) {
     message.style.marginBottom = '32px';
     message.innerHTML = `
         To proceed, please review and complete the 
-        <a href="https://forms.office.com/r/3qnwPbAbQM" target="_blank" style="color: var(--primary-color); text-decoration: underline;">
+        <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=SJPOFSq-K0aPwOF2WpsgSiop4zdHXqFHgOlkha7mP8VURUNZRFJGU1lHWVBWMVBFUFJFQ0o4OURTMy4u" target="_blank" style="color: var(--primary-color); text-decoration: underline;">
             consent form
         </a>. 
         Once you have submitted your response, you may continue to the application.
