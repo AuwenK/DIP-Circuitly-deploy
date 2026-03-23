@@ -217,7 +217,20 @@ function render() { // Inside render, code looks at state.view and matches it ag
                         const result = await window.ProfileService.authenticate(username, password);
                         if (result.success) {
                             window.ProfileService.logBehaviour('login', { username });
-                            loadUser(result.profile);
+                            
+                            // Check for leaderboard name (Onboarding)
+                            if (!result.profile.leaderboard_name && window.LeaderboardNameModal) {
+                                const modal = window.LeaderboardNameModal({
+                                    onSave: async (newName) => {
+                                        await window.ProfileService.updateLeaderboardName(result.profile.studentId, newName);
+                                        result.profile.leaderboard_name = newName;
+                                        loadUser(result.profile);
+                                    }
+                                });
+                                document.body.appendChild(modal);
+                            } else {
+                                loadUser(result.profile);
+                            }
                         } else {
                             alert(result.error);
                         }

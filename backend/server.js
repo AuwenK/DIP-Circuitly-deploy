@@ -72,6 +72,7 @@ app.post('/api/auth/login', async (req, res) => {
             username: user.username,
             studentId: user.student_id,
             name: user.name,
+            leaderboard_name: user.leaderboard_name,
             xp: user.xp,
             hearts: user.hearts,
             role: user.role,
@@ -189,6 +190,27 @@ app.post('/api/progress', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: 'Failed to save progress' });
+    }
+});
+
+// Update Leaderboard Name
+app.post('/api/user/leaderboard-name', async (req, res) => {
+    const { studentId, leaderboardName } = req.body;
+
+    try {
+        const result = await db.query(
+            'UPDATE users SET leaderboard_name = $1 WHERE student_id = $2 RETURNING leaderboard_name',
+            [leaderboardName, studentId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        res.json({ success: true, leaderboard_name: result.rows[0].leaderboard_name });
+    } catch (err) {
+        console.error('Failed to update leaderboard name:', err);
+        res.status(500).json({ success: false, error: 'Failed to update leaderboard name' });
     }
 });
 
@@ -399,6 +421,43 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
     console.error('Unhandled Rejection:', reason);
 });
+
+// --- REAL-TIME EXCEL SYNC ---
+const fs = require('fs');
+const { exec } = require('child_process');
+const EXCEL_FILE_PATH = path.join(__dirname, '../EE2101_25S2_IMPULSE_USERS.xlsx');
+const MIGRATION_SCRIPT_PATH = path.join(__dirname, 'scripts/migrate_users.py');
+
+let syncTimeout = null;
+const syncExcelToDb = () => {
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+        console.log(`[Sync] Excel file changed, triggering migration...`);
+        const pyCmd = process.platform === 'win32' ? 'py' : 'python3';
+        exec(`${pyCmd} "${MIGRATION_SCRIPT_PATH}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`[Sync Error] Migration failed: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.warn(`[Sync Warning] Migration output: ${stderr}`);
+            }
+            console.log(`[Sync Success] Migration output: ${stdout.trim()}`);
+        });
+    }, 1000); // 1-second debounce
+};
+
+if (fs.existsSync(EXCEL_FILE_PATH)) {
+    console.log(`[Sync] Watching for changes to ${EXCEL_FILE_PATH}...`);
+    fs.watch(EXCEL_FILE_PATH, (eventType, filename) => {
+        console.log(`[Sync] Event ${eventType} on ${filename}`);
+        if (filename) {
+            syncExcelToDb();
+        }
+    });
+} else {
+    console.warn(`[Sync Warning] Excel file not found for watching at ${EXCEL_FILE_PATH}`);
+}
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} (max ${process.env.DB_POOL_MAX || 20} DB connections per instance)`);

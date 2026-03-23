@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     next_heart_restore_time TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    leaderboard_name VARCHAR(50),
     answer_history JSONB DEFAULT '[]'::jsonb,
     stats JSONB DEFAULT '{}'::jsonb
 );

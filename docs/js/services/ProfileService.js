@@ -207,6 +207,7 @@ window.ProfileService = {
                     // Add modern fields if missing from backend record
                     const modernUser = {
                         ...data.user,
+                        leaderboard_name: data.user.leaderboard_name || null,
                         weeklyXP: data.user.weeklyXP || 0,
                         lastResetWeek: data.user.lastResetWeek || this.getCurrentWeekId(),
                         revisionPool: data.user.revisionPool || [],
@@ -631,6 +632,29 @@ window.ProfileService = {
         // 3. Generate file and trigger download
         const dateStr = new Date().toISOString().slice(0, 10);
         XLSX.writeFile(wb, `PlayerProfiles_${dateStr}.xlsx`);
+    },
+
+    updateLeaderboardName: async function (studentId, name) {
+        const profile = this.profiles.find(p => p.studentId === studentId);
+        if (profile) {
+            profile.leaderboard_name = name;
+            this.save();
+        }
+
+        if (window.DataService && window.DataService.isOnline && studentId !== 'ADMIN') {
+            try {
+                const res = await fetch(`${window.CONFIG.API_BASE_URL}/api/user/leaderboard-name`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ studentId, leaderboardName: name })
+                });
+                return await res.json();
+            } catch (e) {
+                console.error("Failed to update leaderboard name online:", e);
+                return { success: false, error: "Network error" };
+            }
+        }
+        return { success: true };
     }
 };
 
