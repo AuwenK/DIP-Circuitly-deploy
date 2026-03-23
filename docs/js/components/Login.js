@@ -1,4 +1,4 @@
-window.Login = function ({ onLogin }) {
+window.Login = function ({ onLogin, onRegister }) {
     const container = document.createElement('div');
     container.className = 'dashboard-container animate-fade-in';
     container.style.height = '100vh';
@@ -30,6 +30,37 @@ window.Login = function ({ onLogin }) {
     subtitle.style.marginBottom = '24px';
     card.appendChild(subtitle);
 
+     // Toggle Buttons
+    const toggleContainer = document.createElement('div');
+    toggleContainer.style.display = 'flex';
+    toggleContainer.style.justifyContent = 'center';
+    toggleContainer.style.marginBottom = '24px';
+    toggleContainer.style.background = 'rgba(255,255,255,0.05)';
+    toggleContainer.style.borderRadius = '8px';
+    toggleContainer.style.padding = '4px';
+
+    const loginToggle = document.createElement('button');
+    loginToggle.textContent = 'Log In';
+    loginToggle.style.flex = '1';
+    loginToggle.style.padding = '8px';
+    loginToggle.style.border = 'none';
+    loginToggle.style.borderRadius = '6px';
+    loginToggle.style.cursor = 'pointer';
+    loginToggle.style.color = 'white';
+
+    const signupToggle = document.createElement('button');
+    signupToggle.textContent = 'Sign Up';
+    signupToggle.style.flex = '1';
+    signupToggle.style.padding = '8px';
+    signupToggle.style.border = 'none';
+    signupToggle.style.borderRadius = '6px';
+    signupToggle.style.cursor = 'pointer';
+    signupToggle.style.color = 'white';
+
+    toggleContainer.appendChild(loginToggle);
+    toggleContainer.appendChild(signupToggle);
+    card.appendChild(toggleContainer);
+    
     // Form Container
     const formContainer = document.createElement('div');
     card.appendChild(formContainer);
@@ -54,6 +85,10 @@ window.Login = function ({ onLogin }) {
     // --- RENDER LOGIN ---
     function renderLogin() {
         formContainer.innerHTML = '';
+        loginToggle.style.background = 'var(--primary)';
+        loginToggle.style.fontWeight = 'bold';
+        signupToggle.style.background = 'transparent';
+        signupToggle.style.fontWeight = 'normal';
 
         const userIn = createInput('E-Mail');
         const passIn = createInput('Matriculation Number', 'password');
