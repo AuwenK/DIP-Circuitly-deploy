@@ -115,8 +115,65 @@ window.ProfileService = {
     },
 
     addProfile: async function (profile) {
-        // Registration is disabled - whitelist only
-        return { success: false, error: "Registration is disabled. Please contact your administrator." };
+         // Validation
+        if (!profile.name || !profile.studentId || !profile.username || !profile.password) {
+            return { success: false, error: "All fields are required (Name, ID, Username, Password)." };
+        }
+
+        if (window.DataService && window.DataService.isOnline) {
+            try {
+                const res = await fetch(`${window.CONFIG.API_BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: profile.username,
+                        password: profile.password,
+                        studentId: profile.studentId,
+                        name: profile.name,
+                        classGroup: profile.classGroup
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // We still create the local profile structure for smooth offline capability
+                } else {
+                    return { success: false, error: data.error || "Registration failed" };
+                }
+            } catch (e) {
+                console.error("Backend registration failed, falling back to local:", e);
+            }
+        }
+
+        // Check for duplicate ID
+        if (this.profiles.some(p => p.studentId === profile.studentId)) {
+            return { success: false, error: "Student ID already exists." };
+        }
+
+        // Check for duplicate Username
+        if (this.profiles.some(p => p.username === profile.username)) {
+            return { success: false, error: "Username already taken." };
+        }
+
+        const newProfile = {
+            ...profile,
+            createdAt: new Date().toISOString(),
+            // Default App State
+            xp: 0,
+            weeklyXP: 0,
+            lastResetWeek: this.getCurrentWeekId(),
+            hearts: 5,
+            topicProgress: {},
+            revisionPool: [],
+            unfamiliarPool: [],
+            stats: {},
+            answer_history: [],
+            questionMastery: {},
+            streakData: { currentStreak: 0, bestStreak: 0 }
+        };
+
+        this.profiles.push(newProfile);
+        this.save();
+        return { success: true };
     },
 
     authenticate: async function (username, password) {
