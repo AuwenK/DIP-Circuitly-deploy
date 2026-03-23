@@ -27,29 +27,6 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-app.post('/api/auth/register', async (req, res) => {
-    const { username, password, studentId, name, classGroup } = req.body;
-
-    try {
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const result = await db.query(
-            `INSERT INTO users (username, password_hash, student_id, name, class_group)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, username, student_id AS "studentId", name, xp, hearts, role`,
-            [username, passwordHash, studentId, name, classGroup]
-        );
-
-        res.status(201).json({ success: true, user: result.rows[0] });
-    } catch (err) {
-        console.error(err);
-        res.status(400).json({
-            success: false,
-            error: err.message.includes('unique') ? 'Username or Student ID already exists' : 'Registration failed'
-        });
-    }
-});
-
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -466,4 +443,4 @@ if (fs.existsSync(EXCEL_FILE_PATH)) {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} (max ${process.env.DB_POOL_MAX || 20} DB connections per instance)`);
-});
+});
