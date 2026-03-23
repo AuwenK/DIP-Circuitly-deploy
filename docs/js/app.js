@@ -268,6 +268,17 @@ function render() { // Inside render, code looks at state.view and matches it ag
                         } else {
                             alert(result.error);
                         }
+                    },
+                    onRegister: async (data) => {
+                        const result = await window.ProfileService.addProfile(data);
+                        if (result.success) {
+                            window.ProfileService.logBehaviour('register', { username: data.username });
+                            // Let's auto-login for better UX
+                            const auth = await window.ProfileService.authenticate(data.username, data.password);
+                            if (auth.success) loadUser(auth.profile);
+                        } else {
+                            alert(result.error);
+                        }
                     }
                 });
             }
