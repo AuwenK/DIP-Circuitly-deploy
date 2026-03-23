@@ -113,12 +113,21 @@ function render() { // Inside render, code looks at state.view and matches it ag
 
         if (State.isAdmin) {
             header.innerHTML = `
-                <div class="brand-logo-compact" id="logo-btn" style="pointer-events: auto; cursor:pointer;">
+                <div class="brand-logo-compact" id="logo-btn" style="pointer-events: auto; cursor:pointer;" title="Home">
                     <div class="logo-icon">I</div>
                     <div class="logo-text">Impulse</div>
                 </div>
                 <div class="stats-container">
                     <div class="stat-pill glass-pill accent-pill">ADMINISTRATOR</div>
+                    
+                    <div class="stat-pill glass-pill" style="cursor:pointer; margin-right: 8px;" id="admin-dashboard-btn" title="Admin Dashboard">
+                         ⚙️ Dashboard
+                    </div>
+
+                    <div class="stat-pill glass-pill" style="cursor:pointer; margin-right: 8px;" id="admin-leaderboard-btn" title="Leaderboard">
+                         🏆 Leaderboard
+                    </div>
+
                     <div class="stat-pill glass-pill" style="cursor:pointer; background:rgba(255, 50, 50, 0.2);" id="logout-btn">
                         🚪 Log Out
                     </div>
@@ -164,7 +173,7 @@ function render() { // Inside render, code looks at state.view and matches it ag
             // Logo -> go to topic menu (home) without reloading
             const logoBtn = document.getElementById('logo-btn');
             if (logoBtn) logoBtn.onclick = () => {
-                if (State.studentId && !State.isAdmin) {
+                if (State.studentId) {
                     State.view = ROUTES.HOME;
                     render();
                 }
@@ -212,6 +221,19 @@ function render() { // Inside render, code looks at state.view and matches it ag
 
                 const lbBtn = document.getElementById('leaderboard-tab-btn');
                 if (lbBtn) lbBtn.onclick = () => {
+                    State.view = ROUTES.LEADERBOARD;
+                    render();
+                };
+            } else {
+                // Admin specific buttons
+                const adminDashBtn = document.getElementById('admin-dashboard-btn');
+                if (adminDashBtn) adminDashBtn.onclick = () => {
+                    State.view = ROUTES.ADMIN;
+                    render();
+                };
+
+                const adminLbBtn = document.getElementById('admin-leaderboard-btn');
+                if (adminLbBtn) adminLbBtn.onclick = () => {
                     State.view = ROUTES.LEADERBOARD;
                     render();
                 };
