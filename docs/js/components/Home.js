@@ -335,10 +335,13 @@ window.Home = function ({ topicProgress, revisionPoolCount, unfamiliarPoolCount,
         }
     };
 
-    footer.appendChild(importInput);
-    footer.appendChild(importBtn);
-    footer.appendChild(resetBtn);
-    container.appendChild(footer);
+    const currentUser = window.ProfileService && window.ProfileService.getCurrentUser ? window.ProfileService.getCurrentUser() : null;
+    if (currentUser && currentUser.role === 'admin') {
+        footer.appendChild(importInput);
+        footer.appendChild(importBtn);
+        footer.appendChild(resetBtn);
+        container.appendChild(footer);
+    }
 
     return container;
 };
