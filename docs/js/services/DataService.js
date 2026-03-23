@@ -181,7 +181,8 @@ window.DataService = {
                 answer: finalAnswer,
                 image: row.image || null,
                 explanation: row.explanation || null,
-                difficulty: diffNum
+                difficulty: diffNum,
+                pdfPage: row.pdfPage ? Number(row.pdfPage) : null
             };
         });
     },
@@ -471,6 +472,13 @@ window.DataService = {
                     obj.difficulty = diffNum;
                 } else {
                     obj.difficulty = 1;
+                }
+                
+                // Column 11 is pdfPage (index 10)
+                if (currentline[10] && currentline[10].trim() !== '') {
+                    obj.pdfPage = Number(currentline[10].trim());
+                } else {
+                    obj.pdfPage = null;
                 }
 
                 results.push(obj);

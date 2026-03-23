@@ -16,7 +16,7 @@ window.Leaderboard = function ({ onViewPlayerProfile } = {}) {
 
         const container = document.createElement('div');
         container.className = 'leaderboard-container animate-fade-in';
-        container.style.paddingTop = '100px';
+        container.style.paddingTop = '160px';
         container.style.paddingLeft = '24px';
         container.style.paddingRight = '24px';
         container.style.paddingBottom = '40px';
@@ -375,6 +375,14 @@ window.Leaderboard = function ({ onViewPlayerProfile } = {}) {
         const activePlayers = allSortedPlayers.filter(p => getRankingValue(p, selectedCategory, selectedTopic, selectedPeriod) > 0);
 
         let displayPlayers = activePlayers;
+        let bottomPlayers = [];
+
+        if (!searchQuery && activePlayers.length > 1) {
+            // Guarantee top 1 is safe in small environments. Take up to the bottom 5 players for the "Needs XP" section.
+            const bottomCount = Math.min(5, activePlayers.length - 1);
+            bottomPlayers = activePlayers.slice(-bottomCount);
+            displayPlayers = activePlayers.filter(p => !bottomPlayers.includes(p));
+        }
 
         if (searchQuery) {
             displayPlayers = displayPlayers.filter(p => p.name && p.name.toLowerCase().includes(searchQuery));
@@ -532,53 +540,51 @@ window.Leaderboard = function ({ onViewPlayerProfile } = {}) {
             listWrapper.appendChild(tierContainer);
         });
 
-        // Short Circuits (Bottom 5 logic)
-        if (!searchQuery && activePlayers.length > 20) {
-            const bottomPlayers = activePlayers.slice(-5);
-            if (bottomPlayers.length > 0) {
-                const bottomHeader = document.createElement('div');
-                bottomHeader.style.display = 'flex';
-                bottomHeader.style.alignItems = 'center';
-                bottomHeader.style.marginTop = '48px';
-                bottomHeader.style.marginBottom = '16px';
-                bottomHeader.style.paddingBottom = '12px';
-                bottomHeader.style.borderBottom = `2px solid rgba(239, 68, 68, 0.5)`;
+        // Recharging Zone (Lowest XP logic)
+        if (bottomPlayers.length > 0) {
+            const bottomHeader = document.createElement('div');
+            bottomHeader.style.display = 'flex';
+            bottomHeader.style.alignItems = 'center';
+            bottomHeader.style.marginTop = '48px';
+            bottomHeader.style.marginBottom = '16px';
+            bottomHeader.style.paddingBottom = '12px';
+            bottomHeader.style.borderBottom = `2px solid rgba(239, 68, 68, 0.5)`;
 
-                bottomHeader.innerHTML = `
-                    <span style="font-size: 1.5rem; margin-right: 10px;">🔌</span>
-                    <h3 style="font-size: 1.2rem; font-weight: 700; color: #fca5a5;">Short Circuits</h3>
-                    <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; border-radius: 50px;">Needs more voltage...</span>
-                `;
-                listWrapper.appendChild(bottomHeader);
+            bottomHeader.innerHTML = `
+                <span style="font-size: 1.5rem; margin-right: 10px;">🔌</span>
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #fca5a5;">Time to Recharge (Lowest XP)</h3>
+                <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; border-radius: 50px;">Keep pushing! You got this!</span>
+            `;
+            listWrapper.appendChild(bottomHeader);
 
-                const bottomContainer = document.createElement('div');
-                bottomContainer.style.display = 'flex';
-                bottomContainer.style.flexDirection = 'column';
-                bottomContainer.style.gap = '8px';
-                bottomContainer.style.marginBottom = '24px';
+            const bottomContainer = document.createElement('div');
+            bottomContainer.style.display = 'flex';
+            bottomContainer.style.flexDirection = 'column';
+            bottomContainer.style.gap = '8px';
+            bottomContainer.style.marginBottom = '24px';
 
-                const startIndex = activePlayers.length - bottomPlayers.length;
+            const startIndex = activePlayers.length - bottomPlayers.length;
 
-                bottomPlayers.forEach((player, idx) => {
-                    const actualRank = startIndex + idx + 1;
-                    const row = document.createElement('div');
-                    row.style.display = 'flex';
-                    row.style.alignItems = 'center';
-                    row.style.padding = '14px 18px';
+            bottomPlayers.forEach((player, idx) => {
+                const actualRank = startIndex + idx + 1;
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.padding = '14px 18px';
+                row.style.background = 'rgba(239, 68, 68, 0.05)';
+                row.style.border = `1px solid rgba(239, 68, 68, 0.2)`;
+                row.style.borderRadius = '10px';
+                row.style.transition = 'all 0.3s ease';
+                row.style.cursor = 'pointer';
+
+                row.onmouseenter = () => {
+                    row.style.background = 'rgba(239, 68, 68, 0.1)';
+                    row.style.transform = 'translateX(4px)';
+                };
+                row.onmouseleave = () => {
                     row.style.background = 'rgba(239, 68, 68, 0.05)';
-                    row.style.border = `1px solid rgba(239, 68, 68, 0.2)`;
-                    row.style.borderRadius = '10px';
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.cursor = 'pointer';
-
-                    row.onmouseenter = () => {
-                        row.style.background = 'rgba(239, 68, 68, 0.1)';
-                        row.style.transform = 'translateX(4px)';
-                    };
-                    row.onmouseleave = () => {
-                        row.style.background = 'rgba(239, 68, 68, 0.05)';
-                        row.style.transform = 'translateX(0)';
-                    };
+                    row.style.transform = 'translateX(0)';
+                };
 
                     row.onclick = () => {
                         if (onViewPlayerProfile) onViewPlayerProfile(player);
@@ -637,7 +643,6 @@ window.Leaderboard = function ({ onViewPlayerProfile } = {}) {
                 });
 
                 listWrapper.appendChild(bottomContainer);
-            }
         }
 
         container.appendChild(listWrapper);

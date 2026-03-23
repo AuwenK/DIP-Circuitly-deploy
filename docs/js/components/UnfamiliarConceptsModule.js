@@ -242,31 +242,41 @@ window.UnfamiliarConceptsModule = function ({ onExit }) {
             btnStack.style.flexDirection = 'column';
             btnStack.style.gap = '10px';
 
-            if (q.pdfFile) {
-                const reviewPage = q.pdfPage || 1;
-                const reviewBtn = document.createElement('button');
-                reviewBtn.className = 'btn btn-primary';
-                reviewBtn.style.width = '100%';
-                reviewBtn.style.padding = '14px';
-                reviewBtn.style.fontSize = '1rem';
-                reviewBtn.textContent = `📄 Open Lecture Notes · p.${reviewPage}`;
-                reviewBtn.onclick = () => {
-                    const page = q.pdfPage || 1;
-                    let pdfPath = q.pdfFile;
+            const lectureMapping = {
+                1: 'EE2101_CIRCUIT_ANALYSIS_LECTURE_1_V1.pdf',
+                2: 'EE2101_CIRCUIT_ANALYSIS_LECTURE_5_V2.pdf',
+                3: 'EE2101_CIRCUIT_ANALYSIS_LECTURE_6_V1.pdf',
+                4: 'EE2101_CIRCUIT_ANALYSIS_LECTURE_4_V1.pdf',
+                5: 'EE2101_CIRCUIT_ANALYSIS_LECTURE_7_V3.pdf',
+                6: 'EE2101 - W8_Network Functions.pdf',
+                7: 'EE2101 - W10_Sinusoids and Phasors.pdf',
+                8: 'EE2101 - W13_Three-Phase Circuits.pdf'
+            };
+            const mappedPdf = lectureMapping[topicIdNum] || q.pdfFile;
+
+            // Primary action: View Lecture Slides
+            if (mappedPdf) {
+                const reviewPage = q.pdfPage ? `#page=${q.pdfPage}` : '';
+                const slidesBtn = document.createElement('button');
+                slidesBtn.className = 'btn btn-primary';
+                slidesBtn.style.width = '100%';
+                slidesBtn.style.padding = '14px';
+                slidesBtn.style.fontSize = '1rem';
+                slidesBtn.innerHTML = q.pdfPage ? `📄 Open Lecture Notes · p.${q.pdfPage}` : '📄 View Lecture Slides';
+                slidesBtn.onclick = () => {
+                    let pdfPath = mappedPdf;
                     if (!pdfPath.startsWith('http') && !pdfPath.startsWith('/') && !pdfPath.includes('/')) {
-                        pdfPath = 'pdfs/' + pdfPath;
+                        pdfPath = 'assets/slides/' + encodeURIComponent(pdfPath);
                     }
-                    const parts = pdfPath.split('/');
-                    parts[parts.length - 1] = encodeURIComponent(parts[parts.length - 1]);
-                    window.open(parts.join('/') + '#page=' + page, '_blank');
+                    window.open(pdfPath + reviewPage, '_blank');
                 };
-                btnStack.appendChild(reviewBtn);
+                btnStack.appendChild(slidesBtn);
             }
 
-            // Search Online
+            // Secondary action: Search Online
             const conceptQuery = encodeURIComponent(generateConceptTitle(q.question) + ' circuit analysis explained');
             const searchBtn = document.createElement('button');
-            searchBtn.className = q.pdfFile ? 'btn btn-secondary' : 'btn btn-primary';
+            searchBtn.className = mappedPdf ? 'btn btn-secondary' : 'btn btn-primary';
             searchBtn.style.width = '100%';
             searchBtn.style.padding = '14px';
             searchBtn.style.fontSize = '1rem';

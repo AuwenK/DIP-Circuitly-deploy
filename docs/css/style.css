@@ -40,6 +40,10 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+button, input, select, textarea {
+    font-family: inherit;
+}
+
 body {
     font-family: var(--font-stack);
     background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
@@ -496,7 +500,4 @@ body {
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
 }
-
-.leaderboard-container {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5) !important;
-}
+

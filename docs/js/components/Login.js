@@ -90,8 +90,8 @@ window.Login = function ({ onLogin, onRegister }) {
         signupToggle.style.background = 'transparent';
         signupToggle.style.fontWeight = 'normal';
 
-        const userIn = createInput('E-Mail');
-        const passIn = createInput('Matriculation Number', 'password');
+        const userIn = createInput('Email / Username');
+        const passIn = createInput('Matriculation Number / Password', 'password');
         const btn = document.createElement('button');
         btn.className = 'btn btn-primary';
         btn.style.width = '100%';

@@ -381,7 +381,7 @@ window.Quiz = function ({ topicId, customQuestions, onCorrect, onComplete, onExi
 
         container.innerHTML = '';
         container.style.height = 'auto';
-        container.style.paddingTop = '40px';
+        container.style.paddingTop = '120px';
         container.style.justifyContent = 'flex-start';
 
         // Calculate functionality
