@@ -129,15 +129,50 @@ window.Quiz = function ({ topicId, customQuestions, onCorrect, onComplete, onExi
     optionsContainer.style.gap = '8px'; // Compact gap
     quizCard.appendChild(optionsContainer);
 
+    // Action Buttons Row
+    const actionRow = document.createElement('div');
+    actionRow.style.display = 'flex';
+    actionRow.style.gap = '10px';
+    actionRow.style.marginTop = '10px';
+
+    // Not Familiar Button
+    const notFamiliarBtn = document.createElement('button');
+    notFamiliarBtn.className = 'btn';
+    notFamiliarBtn.innerHTML = '⚠️ Not Familiar';
+    notFamiliarBtn.style.flex = '1';
+    notFamiliarBtn.style.padding = '12px 8px';
+    notFamiliarBtn.style.fontSize = '0.9rem';
+    notFamiliarBtn.style.border = '1px solid var(--warning)';
+    notFamiliarBtn.style.color = 'var(--text-main)';
+    notFamiliarBtn.style.background = 'transparent';
+    notFamiliarBtn.style.transition = 'all 0.2s';
+    notFamiliarBtn.style.whiteSpace = 'nowrap';
+    notFamiliarBtn.onmouseenter = () => {
+         notFamiliarBtn.style.background = 'rgba(234, 179, 8, 0.1)'; 
+    };
+    notFamiliarBtn.onmouseleave = () => {
+         notFamiliarBtn.style.background = 'transparent'; 
+    };
+    notFamiliarBtn.onclick = () => {
+        if (!isAnswered) {
+             selectedOption = "NOT_FAMILIAR";
+             checkBtn.disabled = false;
+             checkBtn.style.opacity = '1';
+             checkBtn.onclick();
+        }
+    };
+    actionRow.appendChild(notFamiliarBtn);
+
     // Check Button
     const checkBtn = document.createElement('button');
     checkBtn.className = 'btn btn-primary';
     checkBtn.textContent = 'CHECK ANSWER';
-    checkBtn.style.marginTop = '10px';
-    checkBtn.style.width = '100%';
+    checkBtn.style.flex = '2';
     checkBtn.style.padding = '12px';
     checkBtn.style.fontSize = '1rem';
-    quizCard.appendChild(checkBtn);
+    actionRow.appendChild(checkBtn);
+
+    quizCard.appendChild(actionRow);
 
     // Feedback Overlay (Glass style)
     const feedbackOverlay = document.createElement('div');

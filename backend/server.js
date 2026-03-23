@@ -433,15 +433,20 @@ const syncExcelToDb = () => {
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(() => {
         console.log(`[Sync] Excel file changed, triggering migration...`);
-        const pyCmd = process.platform === 'win32' ? 'py' : 'python3';
-        exec(`${pyCmd} "${MIGRATION_SCRIPT_PATH}"`, (error, stdout, stderr) => {
+        exec(`py "${MIGRATION_SCRIPT_PATH}"`, (error, stdout, stderr) => {
             if (error) {
-                console.error(`[Sync Error] Migration failed: ${error.message}`);
+                // Fallback to python command if py fails
+                exec(`python "${MIGRATION_SCRIPT_PATH}"`, (err2, stdout2, stderr2) => {
+                    if (err2) {
+                        console.error(`[Sync Error] Migration failed: ${err2.message}`);
+                        return;
+                    }
+                    if (stderr2) console.warn(`[Sync Warning] Migration output: ${stderr2}`);
+                    console.log(`[Sync Success] Migration output: ${stdout2.trim()}`);
+                });
                 return;
             }
-            if (stderr) {
-                console.warn(`[Sync Warning] Migration output: ${stderr}`);
-            }
+            if (stderr) console.warn(`[Sync Warning] Migration output: ${stderr}`);
             console.log(`[Sync Success] Migration output: ${stdout.trim()}`);
         });
     }, 1000); // 1-second debounce

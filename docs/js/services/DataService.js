@@ -31,6 +31,7 @@ const STORAGE_KEY = 'circuitly_data';
 // Data Service
 window.DataService = {
     questions: [], // In-memory store
+    topic5Questions: [], // Added for DB loading
 
     getTopics: () => TOPICS,
 
@@ -44,6 +45,40 @@ window.DataService = {
                 if (res.ok) {
                     window.DataService.isOnline = true;
                     console.log("Backend connection successful. Using remote database.");
+
+                    // Load Topic 5 from AWS Database
+                    try {
+                        const dbRes = await fetch(`${window.CONFIG.API_BASE_URL}/api/questions/5`);
+                        const dbData = await dbRes.json();
+                        if (dbData.success && dbData.questions.length > 0) {
+                            window.DataService.topic5Questions = dbData.questions.map(q => {
+                                // Normalize Answer (Letter to Text)
+                                let finalAnswer = q.answer;
+                                if (finalAnswer && finalAnswer.length === 1) {
+                                    const char = finalAnswer.toLowerCase();
+                                    if (char === 'a') finalAnswer = q.optionA;
+                                    else if (char === 'b') finalAnswer = q.optionB;
+                                    else if (char === 'c') finalAnswer = q.optionC;
+                                    else if (char === 'd' && q.optionD) finalAnswer = q.optionD;
+                                }
+                                
+                                // Normalize Difficulty (String to Number)
+                                let diffNum = 1;
+                                if (q.difficulty) {
+                                    const lc = String(q.difficulty).toLowerCase().trim();
+                                    if (lc === 'easy') diffNum = 1;
+                                    else if (lc === 'medium' || lc === 'med') diffNum = 2;
+                                    else if (lc === 'hard') diffNum = 3;
+                                    else if (!isNaN(Number(q.difficulty))) diffNum = Number(q.difficulty);
+                                }
+                                
+                                return { ...q, answer: finalAnswer, difficulty: diffNum };
+                            });
+                            console.log(`Loaded ${window.DataService.topic5Questions.length} questions for Topic 5 from AWS DB.`);
+                        }
+                    } catch (dbErr) {
+                        console.warn("Could not load Topic 5 from AWS DB, will use CSV fallback.");
+                    }
                 }
             }
         } catch (e) {
@@ -211,6 +246,11 @@ window.DataService = {
         };
 
         let qs = window.DataService.questions;
+
+        // Prioritize Topic 5 from DB if available
+        if (Number(topicId) === 5 && window.DataService.topic5Questions && window.DataService.topic5Questions.length > 0) {
+            qs = window.DataService.topic5Questions;
+        }
 
         // Filter by topic
         let questions = qs.filter(q => q.topicId === Number(topicId));

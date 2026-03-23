@@ -166,10 +166,127 @@ window.Home = function ({ topicProgress, revisionPoolCount, unfamiliarPoolCount,
 
     container.appendChild(grid);
 
-    // Leaderboard Section
-    if (window.Leaderboard) {
-        container.appendChild(window.Leaderboard());
+    // Weekly Champions Podium Section
+    const podiumSection = document.createElement('div');
+    podiumSection.className = 'card-glass animate-fade-in';
+    podiumSection.style.marginTop = '40px';
+    podiumSection.style.padding = '32px';
+    podiumSection.style.background = 'rgba(15, 23, 42, 0.4)';
+    podiumSection.style.position = 'relative';
+
+    const podiumTitle = document.createElement('div');
+    podiumTitle.style.display = 'flex';
+    podiumTitle.style.justifyContent = 'space-between';
+    podiumTitle.style.alignItems = 'center';
+    podiumTitle.style.marginBottom = '60px';
+
+    const pTitleText = document.createElement('h2');
+    pTitleText.className = 'text-gradient';
+    pTitleText.textContent = 'Weekly Champions';
+    pTitleText.style.fontSize = '2rem';
+    pTitleText.style.fontWeight = '800';
+    podiumTitle.appendChild(pTitleText);
+
+    const periodTag = document.createElement('div');
+    periodTag.textContent = 'This Week';
+    periodTag.style.cssText = 'padding:6px 14px; border-radius:50px; border:1px solid var(--surface-border); background:rgba(255,255,255,0.05); color:var(--text-muted); font-size:0.8rem; font-weight:500;';
+    podiumTitle.appendChild(periodTag);
+
+    podiumSection.appendChild(podiumTitle);
+
+    let players = [];
+    if (window.ProfileService && window.ProfileService.getLeaderboard) {
+        players = window.ProfileService.getLeaderboard();
     }
+
+    const getWeeklyXP = (player) => {
+        const now = Date.now();
+        const weekAgo = now - (7 * 24 * 60 * 60 * 1000);
+        const relevantAttempts = (player.answer_history || []).filter(attempt => 
+            new Date(attempt.timestamp).getTime() > weekAgo
+        );
+        let weekXP = relevantAttempts.reduce((sum, a) => sum + (a.xp || 0), 0);
+        
+        // Fallback for players without deep history to make podium look alive
+        if (weekXP === 0 && player.xp > 0 && (!player.answer_history || player.answer_history.length === 0)) {
+            weekXP = player.xp;
+        }
+        return weekXP;
+    };
+
+    const sortedWeekly = [...players].sort((a, b) => getWeeklyXP(b) - getWeeklyXP(a));
+
+    const pContainer = document.createElement('div');
+    pContainer.style.cssText = 'display:flex; align-items:flex-end; justify-content:center; gap:16px; height:200px; margin-top:20px;';
+
+    const ranks = [
+        { rank: 2, height: '120px', color: 'linear-gradient(180deg, #9ca3af 0%, #4b5563 100%)', shadow: '0 10px 30px -10px rgba(156,163,175,0.5)', icon: '🥈', ring: '#9ca3af' },
+        { rank: 1, height: '160px', color: 'linear-gradient(180deg, #fbbf24 0%, #d97706 100%)', shadow: '0 10px 40px -10px rgba(251,191,36,0.6)', icon: '👑', ring: '#fbbf24' },
+        { rank: 3, height: '100px', color: 'linear-gradient(180deg, #b45309 0%, #78350f 100%)', shadow: '0 10px 30px -10px rgba(180,83,9,0.5)', icon: '🥉', ring: '#b45309' }
+    ];
+
+    ranks.forEach((r) => {
+        const player = sortedWeekly[r.rank - 1]; 
+
+        const col = document.createElement('div');
+        col.style.cssText = 'display:flex; flex-direction:column; align-items:center; width:120px;';
+
+        if (player) {
+            const avatar = document.createElement('div');
+            avatar.style.cssText = `
+                width: 50px; height: 50px; border-radius: 50%; 
+                background: #1f2937; display:flex; align-items:center; justify-content:center;
+                font-size: 1.5rem; margin-bottom: 12px;
+                border: 2px solid ${r.ring};
+                box-shadow: 0 0 15px ${r.ring}40;
+                position: relative;
+                z-index: 2;
+            `;
+            avatar.textContent = r.icon;
+
+            const name = document.createElement('div');
+            // Prefer leaderboard_name from the backend sync if it exists 
+            name.textContent = player.leaderboard_name || player.name || 'Unknown';
+            name.style.cssText = 'font-weight:700; font-size:0.9rem; margin-bottom:4px; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;';
+
+            const score = document.createElement('div');
+            score.innerHTML = `<span style="color:#fbbf24; margin-right:4px;">⚡</span>${getWeeklyXP(player)}`;
+            score.style.cssText = 'font-size:0.85rem; font-weight:700; margin-bottom: 16px;';
+
+            col.appendChild(avatar);
+            col.appendChild(name);
+            col.appendChild(score);
+        } else {
+            const placeholder = document.createElement('div');
+            placeholder.style.height = '112px'; 
+            col.appendChild(placeholder);
+        }
+
+        const block = document.createElement('div');
+        block.style.cssText = `
+            width: 100%;
+            height: ${r.height};
+            background: ${r.color};
+            border-radius: 12px 12px 0 0;
+            box-shadow: ${r.shadow};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        `;
+        block.textContent = r.rank;
+
+        col.appendChild(block);
+        pContainer.appendChild(col);
+    });
+
+    podiumSection.appendChild(pContainer);
+    container.appendChild(podiumSection);
 
     // Footer Section
     const footer = document.createElement('div');

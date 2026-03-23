@@ -8,7 +8,8 @@ const ROUTES = { // constant object used as maps like buttons on an elevator
     RESULT: 'result',
     PROFILES: 'profiles',
     ADMIN: 'admin',
-    UNFAMILIAR: 'unfamiliar'
+    UNFAMILIAR: 'unfamiliar',
+    LEADERBOARD: 'leaderboard'
 };
 
 // Global State
@@ -137,6 +138,11 @@ function render() { // Inside render, code looks at state.view and matches it ag
                     </div>
                     <div class="stat-pill glass-pill accent-pill"><span style="margin-right:8px">⚡</span> ${State.xp} XP</div>
                     
+                    <!-- Leaderboard Menu -->
+                    <div class="stat-pill glass-pill" style="cursor:pointer; margin-right: 8px;" id="leaderboard-tab-btn" title="Leaderboard">
+                         🏆 Leaderboard
+                    </div>
+
                     <!-- Profile Menu -->
                     <div class="stat-pill glass-pill" style="cursor:pointer; margin-right: 8px;" id="profile-btn" title="Profile Details">
                          👤 ${State.username}
@@ -202,6 +208,12 @@ function render() { // Inside render, code looks at state.view and matches it ag
                         }
                         render();
                     }
+                };
+
+                const lbBtn = document.getElementById('leaderboard-tab-btn');
+                if (lbBtn) lbBtn.onclick = () => {
+                    State.view = ROUTES.LEADERBOARD;
+                    render();
                 };
             }
         }, 0);
@@ -296,6 +308,12 @@ function render() { // Inside render, code looks at state.view and matches it ag
                         render();
                     }
                 });
+            }
+            break;
+
+        case ROUTES.LEADERBOARD:
+            if (window.Leaderboard) {
+                component = window.Leaderboard();
             }
             break;
 

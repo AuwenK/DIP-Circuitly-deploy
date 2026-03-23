@@ -5,9 +5,10 @@ import os
 import re
 from dotenv import load_dotenv
 
-# Path to the backend .env
-ENV_PATH = r'C:/Users/rog/OneDrive/Desktop/DIP-Circuitly-deploy-main/DIP-Circuitly-deploy-main/backend/.env'
-EXCEL_PATH = r'C:/Users/rog/OneDrive/Desktop/DIP-Circuitly-deploy-main/DIP-Circuitly-deploy-main/EE2101_25S2_IMPULSE_USERS.xlsx'
+# Resolve paths dynamically relative to this script
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ENV_PATH = os.path.join(BASE_DIR, '.env')
+EXCEL_PATH = os.path.join(os.path.dirname(BASE_DIR), 'EE2101_25S2_IMPULSE_USERS.xlsx')
 
 load_dotenv(ENV_PATH)
 
